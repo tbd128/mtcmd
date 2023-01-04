@@ -70,7 +70,7 @@ void	opcs_OptRec_setDefault( opcs_OptRec *opts )
 
 const	static	char	*ver = "Ophiuchus ver. 2.1";
 const	static	char	*date = "\tMay 07, 2002";
-const	static	char	*vendor = "Albireo Software";
+const	static	char	*vendor = "tbd128";
 
 int	Ophiuchus( const opcs_OptRec *opts )
 {

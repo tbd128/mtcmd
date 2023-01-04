@@ -17,13 +17,13 @@
 #include	<errno.h>
 #include	"Ophiuchus/Ophiuchus.h"
 
-const	static	char	*ver = "mtcmd ver. 1.1.1";
-const	static	char	*date = "\tJun 15, 2002";
-const	static	char	*vendor = "Albireo Software";
+const	static	char	*ver = "mtcmd ver. 1.1.3";
+const	static	char	*date = "\tJan 03, 2023";
+const	static	char	*vendor = "tbd128";
 const	static	char	*helpMsg = 
 "usage: mtcmd [option...] [cmd]\n"
 " -h	display this message\n"
-" -V	display version number\n"
+" -v	display version number\n"
 " -i	display target device number. use this number for -t option argument\n"
 " -I	display inquiry data, block limits, modepage\n"
 " -t n	set the target device number to n\n"
@@ -49,7 +49,7 @@ const	static	char	*helpMsg =
 char	*optList[] = 
 {
   "-h", 
-  "-V", 
+  "-v", 
   "-i", 
   "-I", 
   "-t", 
@@ -134,7 +134,7 @@ static	int	getCmdAndOption( int argc, char *argv[], opcs_OptRec *opts )
 	  opts->cmd = cmd_showHelp;
 	  return 1;
 	  break;
-	case 1: // "-V"
+	case 1: // "-v"
 	  opts->cmd = cmd_showVers;
 	  fprintf( stderr, "%s\n%s; %s\n", ver, date, vendor );
 	  break;
