@@ -1,0 +1,260 @@
+mtcmd : Magnetic tape device controller for MacOS X
+
+Usage
+mtcmd [option...] [cmd]
+
+-----------------------------------------------------------------
+
+1.	option
+	-i	Display the device number of all the tape devices connected 
+		to the SCSI ports.
+		Please specify one of this number to the parameter of '-t' option.
+		* Important :
+			o Whenever executing any command, the device number must be specified with '-t' option.
+			o The device number displayed by this option has no relations to the SCSI ID.
+
+	-I	Display the inquiry data, block limits data, and mode parameter 
+		page data of the target device.
+		The information on all devices are displayed by default.
+		When a device number is specified by -t option, it outputs specified device information only. 
+		* Note : 
+			The information on data compression page is 
+			displayed only when the device supports it.
+
+	-t n	Set target device for 'cmd' to 'n'.
+		'n' is a number displayed by '-i'.
+		* Important : 
+			This option can not be omitted when specifying any command.
+	
+	-bs n	Set both input and output block size to 'n' bytes.
+		By default, block size is set to 512 bytes.
+		This option is ignored when the target device supports fixed block size only.
+		* Note : 
+			-	If the target device only supports block sizes larger 
+				than 512 bytes, an error will occur when read or write 
+				command is executed.
+				In such case, please specify larger block size expressly.
+			-	When the data to read and write is less than the block 
+				size, it will padded by 0.
+		* Important : 
+			The detail behavior is explained in "6-3 : 
+			About '-bs' options behavior".
+	
+	-bf n	Set block count to read and write to n.
+		By default, block count is set to 20 blocks.
+		* Note : 
+			When the data to read and write is less than the block count, it will padded by 0
+
+	-if f	Set input file to 'f'.
+		Reads the specified file 'f' to input instead of the standard input.
+		This option is effective only when 'write' command is specified.
+		By default, input is the standard input.
+
+	-of f	Set output file to 'f'.
+		Writes output data to the specified file 'f'.
+		This option is effective only when 'read command is specified.
+		By default, output is the standard output.
+
+	-c m	Set the compression mode for writing.
+		'y' or 'n' can be specified to 'm'.
+			y : set the compression mode to enable.
+			n : set the compression mode to disable.
+		By default, it operates in the mode preset to the device.
+		* Note : 
+			This option is effective when only the device supports 
+			data compression.
+
+	-dt t	Set writing density type to EXB-8505 tape drive.
+		'l', 'm', 'h', or 'c' can be specified to 't'.
+			l : 8200 format(up to 2GB by 112M tape un-compressing)
+			m : 8500 format(up to 5GB by 112M tape un-compressing)
+			h : 8500c format(up to 10GB by 112M tape with 
+			    compression)
+			c : Same as h.
+		By the default, it operates in the mode preset to the device.
+		* Important : 
+			This option is effective only for the EXB-8505 
+			tape drive.
+			The EXB-8505 allows to change compression mode by 
+			'-c' only when density type is set to 8500c format.
+
+	-h	Display simple help message.
+	
+	-v	Display version number.
+
+-----------------------------------------------------------------
+
+2.	cmd
+
+	Any one of the following command can be specified.
+	Any command operates the device which is specified by '-t' option.
+	* Important : 
+		It can not omit '-t' whenever any of 'cmd' is specified.
+	
+	read	Read data from the tape specified by '-t'.
+
+	write	Write data to the tape specified by '-t'.
+	
+	fsf n	Forward to n-th end-of-file mark.
+	
+	bsf n	Rewind to n-th end-of-file mark.
+	
+	weof n	Write n end-of-file mark at current position of the head.
+	
+	smk n	Write n end-of-set mark at current position of the head.
+			(currently not implemented)
+	
+	rewind	Rewind the tape to beginning of the tape.
+	
+	offline	Place the device off-line state. 
+			In most case, ejects the tape cartridge.
+
+	rewoffl	Rewind the tape to beginning of the tape and place the 
+			device off-line state. 
+	
+	erase	Erase the tape.
+	
+	setopt	Perform the following setup to the device.
+				o Block size specified by '-bs'.
+				o Compression mode specified by '-c'.
+			This command only sets transmission conditions to the 
+			device, and does not actually run the tape.
+
+-----------------------------------------------------------------
+
+3.	Examples
+
+	3-1	Check device number :
+
+		$ mtcmd -i
+		target 1 : EXABYTE EXB-8505SMBANSH20793
+		target 2 : ARCHIVE VIPER 150  21531-004
+
+
+	3-2	Read from device number 1 and expand the data with tar :
+	
+		$ mtcmd -t 1 read | tar xvf -
+		dir
+		dir/file
+		    :
+		    :
+
+
+	3-3	Write ./somearchive.tar.gz to device number 1 :
+
+		$ mtcmd -t 1 -if ./somearchive.tar.gz write
+
+
+	3-4	Eject tape cartridge from device Number 1 :
+
+		$ mtcmd -t 1 offline
+
+
+	3-5	archive somedir by tar, compress by gzip, and write it to device
+		number 2 :
+
+		$ tar cvf - somedir | gzip | mtcmd -t 2 write
+		dir
+		dir/file
+		    :
+		    :
+
+-----------------------------------------------------------------
+
+4.	Notes
+
+4-1	'Block Length == 0' error :
+
+	A:	When a media is not inserted
+		There are some device which fails in execution SCSI command 
+		'ReadBlockLimits' when no media is inserted in the device.
+		For these device, an error message is displayed when '-i' or '-I' 
+		has been specified.
+		In such a case, when a media is inserted to the device, it will 
+		be come to operate normally.
+
+	b:	When a media is inserted
+
+		There are some device which fails in execution SCSI command 
+		'ReadBlockLimits' in spite of that a media is inserted the device.
+		In this case, an error message is displayed same as case 'a'.
+		If a command is again executed with the same parameter, when you 
+		will operate normally, the above-mentioned error should be 
+		disregarded.
+
+
+4-2	'-bs' options behavior
+
+	The transfer block size will be changed whether '-bs' is specified 
+	or not.
+	The details are as follows.
+
+	4-2-1	When '-bs' is not specified
+		a:	If the device supports fixed block size only :
+			->	it reads/writes with the block size supported by the 
+				device.
+		b:	If the device supports variable block size :
+			->	it reads/writes with variable block size mode.
+
+	4-2-2 : When '-bs' is specified
+		a:	If 0 is specified :
+	    	Work with variable block size mode
+			a-1	If the device supports fixed block size only :
+				->	It reads/writes with the block size supported by the 
+					device.
+			a-2	If the device supports variable block size :
+				->	It reads/writes by variable block size.
+		b:	If other than 0 is specified.
+	    	Work with specified block size
+			b-1	If the device supports fixed block size only :
+				->	It reads/writes with the block size supported by the 
+					device.
+			b-2	If the device supports variable block size :
+				->	It reads/writes with specified block size.
+
+
+4-3	Reading / Writing Operation and Early Warning
+	Reading / writing operation is continued until the device returns 
+	"Check Condition" status.
+	For this reason, if the device returns "Early Warning", reading / 
+	writing operation is terminated at that time.
+
+
+4-4	Multiple Tape Volume Is Not Supported
+	mtcmd supports only one tape volume.
+
+
+4-5	Operation Which Changes Mode Select Parameter
+	mtcmd may rewrite Mode Select Parameter of a device. However, it does
+	not write it to non-volatility memory area.
+	So, the parameter will be recovered when the device got a reset signal
+	or power cycle(down and up).
+
+-----------------------------------------------------------------
+
+5.	Compile from Source
+	If you have installed 'Developer Tools' with XCode, you can compile
+	this by just 'make' only.
+	Although mtcmd operates using SCSI Task User Client, SCSI Task User 
+	Client SDK which has come out from Apple is not required.
+
+	In the very old MacOS X, you may need to include IOSCSILib.h.
+	In such case, please add following line at the begging of the *.c
+	files.
+	#include <IOKit/cdb/IOSCSILib.h>
+
+-----------------------------------------------------------------
+
+6 : Tested Device
+	-	Exabyte EXB-8505XL (8mm)
+	-	HP C1537A (DDS3)
+	-	Archive ARCHIVE VIPER 150 (QIC-150)
+	It worked with following adapters :
+	MacMini(2018) with macOS 12	Monterey
+		Apple "Thunderbolt3(USB-C) to Thunderbolt2 Adapter"
+			Apple "Thunderbolt to FireWire Adapter"
+				Ratoc "FireREX1"
+					[To target SCSI tape device]
+
+-----------------------------------------------------------------
+(end of file)
